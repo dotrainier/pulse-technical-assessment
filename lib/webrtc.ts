@@ -1,9 +1,5 @@
-export type DescType = "offer" | "answer" | "ice";
-export type PeerControl =
-  | "video-request"
-  | "video-accept"
-  | "video-decline"
-  | "video-end";
+export type DescType = 'offer' | 'answer' | 'ice';
+export type PeerControl = 'video-request' | 'video-accept' | 'video-decline' | 'video-end';
 
 interface PeerCallbacks {
   onSignal: (type: DescType, payload: string) => void;
@@ -15,7 +11,7 @@ interface PeerCallbacks {
 }
 
 const ICE_CONFIG: RTCConfiguration = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 };
 
 export class PeerSession {
@@ -36,7 +32,7 @@ export class PeerSession {
 
     this.pc.onicecandidate = ({ candidate }) => {
       if (candidate) {
-        this.cb.onSignal("ice", JSON.stringify(candidate));
+        this.cb.onSignal('ice', JSON.stringify(candidate));
       }
     };
 
@@ -45,7 +41,7 @@ export class PeerSession {
         this.makingOffer = true;
         await this.pc.setLocalDescription();
         if (this.pc.localDescription) {
-          this.cb.onSignal("offer", JSON.stringify(this.pc.localDescription));
+          this.cb.onSignal('offer', JSON.stringify(this.pc.localDescription));
         }
       } finally {
         this.makingOffer = false;
@@ -61,7 +57,7 @@ export class PeerSession {
     };
 
     if (initiator) {
-      this.dc = this.pc.createDataChannel("chat");
+      this.dc = this.pc.createDataChannel('chat');
       this.wireDataChannel(this.dc);
     } else {
       this.pc.ondatachannel = (e) => {
@@ -76,9 +72,9 @@ export class PeerSession {
     dc.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data as string);
-        if (msg.t === "chat" && typeof msg.text === "string") {
+        if (msg.t === 'chat' && typeof msg.text === 'string') {
           this.cb.onChat(msg.text);
-        } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
+        } else if (msg.t === 'ctrl' && typeof msg.ctrl === 'string') {
           this.cb.onControl(msg.ctrl as PeerControl);
         }
       } catch {}
@@ -89,7 +85,7 @@ export class PeerSession {
     if (this.closed) return;
     const data = JSON.parse(payload);
 
-    if (type === "ice") {
+    if (type === 'ice') {
       if (!this.pc.remoteDescription) {
         this.pendingCandidates.push(data);
         return;
@@ -102,17 +98,16 @@ export class PeerSession {
 
     const desc = data as RTCSessionDescriptionInit;
     const offerCollision =
-      desc.type === "offer" &&
-      (this.makingOffer || this.pc.signalingState !== "stable");
+      desc.type === 'offer' && (this.makingOffer || this.pc.signalingState !== 'stable');
     this.ignoreOffer = !this.polite && offerCollision;
     if (this.ignoreOffer) return;
 
     await this.flushPendingCandidates();
     await this.pc.setRemoteDescription(desc);
-    if (desc.type === "offer") {
+    if (desc.type === 'offer') {
       await this.pc.setLocalDescription();
       if (this.pc.localDescription) {
-        this.cb.onSignal("answer", JSON.stringify(this.pc.localDescription));
+        this.cb.onSignal('answer', JSON.stringify(this.pc.localDescription));
       }
     }
   }
@@ -129,15 +124,15 @@ export class PeerSession {
   }
 
   sendChat(text: string) {
-    this.safeSend({ t: "msg", text });
+    this.safeSend({ t: 'chat', text });
   }
 
   sendControl(ctrl: PeerControl) {
-    this.safeSend({ t: "ctrl", ctrl });
+    this.safeSend({ t: 'ctrl', ctrl });
   }
 
   private safeSend(obj: unknown) {
-    if (this.dc && this.dc.readyState === "open") {
+    if (this.dc && this.dc.readyState === 'open') {
       this.dc.send(JSON.stringify(obj));
     }
   }
