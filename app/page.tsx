@@ -59,7 +59,7 @@ export default function Home() {
     window.setTimeout(() => setNotice(null), 3500);
   }
 
-  function addMessage(mine: boolean, text: string, system = false) {
+  function addMessage(mine: boolean | null, text: string, system = false) {
     setMessages((prev) => [
       ...prev,
       { id: msgId.current++, mine, text, ts: Date.now(), system },
@@ -102,7 +102,7 @@ export default function Home() {
       },
       onChannelOpen: () => {
         setConn({ kind: "connected", peerId });
-        addMessage(false, "Connected to a stranger", true);
+        addMessage(null, "Connected to a stranger", true);
       },
     });
     peerRef.current = ps;

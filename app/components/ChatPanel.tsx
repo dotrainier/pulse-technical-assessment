@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 export interface ChatMessage {
   id: number;
-  mine: boolean;
+  mine: boolean | null;
   text: string;
   ts: number;
   system?: boolean;
@@ -117,9 +117,9 @@ export default function ChatPanel({
       </header>
 
       {/* Message feed */}
-      <div className="chat-messages flex-1 overflow-y-auto px-4 py-5">
+      <div className="chat-messages relative flex-1 overflow-y-auto px-4 py-5">
         {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-center text-sm text-white/30">
               Say hi to your new connection 👋
             </p>
