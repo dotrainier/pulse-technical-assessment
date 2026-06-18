@@ -163,8 +163,8 @@ export default function ChatPanel({
             <div className="msg-appear flex items-start">
               <div className="flex items-center gap-1.5 rounded-2xl border border-white/8 bg-zinc-800/70 px-4 py-3 backdrop-blur-sm">
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "0ms" }} />
-                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "160ms" }} />
-                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "320ms" }} />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "200ms" }} />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "400ms" }} />
               </div>
             </div>
           )}
