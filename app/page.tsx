@@ -27,6 +27,8 @@ export default function Home() {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [peers, setPeers] = useState<PeerDot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const peerTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -57,8 +59,11 @@ export default function Home() {
     window.setTimeout(() => setNotice(null), 3500);
   }
 
-  function addMessage(mine: boolean, text: string) {
-    setMessages((prev) => [...prev, { id: msgId.current++, mine, text }]);
+  function addMessage(mine: boolean, text: string, system = false) {
+    setMessages((prev) => [
+      ...prev,
+      { id: msgId.current++, mine, text, ts: Date.now(), system },
+    ]);
   }
 
   function teardown(message?: string) {
@@ -69,6 +74,8 @@ export default function Home() {
     setRemoteStream(null);
     setVideo("none");
     setMessages([]);
+    setPeerTyping(false);
+    if (peerTypingTimer.current) clearTimeout(peerTypingTimer.current);
     setConn({ kind: "idle" });
     if (message) showNotice(message);
   }
@@ -80,6 +87,13 @@ export default function Home() {
       },
       onChat: (text) => addMessage(false, text),
       onControl: (ctrl) => handleControl(ctrl),
+      onTyping: (typing) => {
+        setPeerTyping(typing);
+        if (peerTypingTimer.current) clearTimeout(peerTypingTimer.current);
+        if (typing) {
+          peerTypingTimer.current = setTimeout(() => setPeerTyping(false), 2500);
+        }
+      },
       onRemoteStream: (stream) => setRemoteStream(stream),
       onConnectionState: (state) => {
         if (state === "failed") {
@@ -88,6 +102,7 @@ export default function Home() {
       },
       onChannelOpen: () => {
         setConn({ kind: "connected", peerId });
+        addMessage(false, "Connected to a stranger", true);
       },
     });
     peerRef.current = ps;
@@ -361,6 +376,8 @@ export default function Home() {
             peerRef.current?.sendChat(text);
             addMessage(true, text);
           }}
+          onTyping={(v) => peerRef.current?.sendTyping(v)}
+          peerTyping={peerTyping}
           onStartVideo={startVideoRequest}
           onEnd={endConnection}
         />
