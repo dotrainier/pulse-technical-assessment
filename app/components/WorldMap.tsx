@@ -140,6 +140,12 @@ export default function WorldMap({
         seen.add(peer.id);
         let marker = markers.get(peer.id);
         if (!marker) {
+          // Outer wrapper: Mapbox writes transform: translate(X,Y) here for positioning.
+          const wrapper = document.createElement('div');
+          wrapper.style.width = '14px';
+          wrapper.style.height = '14px';
+
+          // Inner button: owns its own scale/animation transforms independently.
           const el = document.createElement('button');
           el.className = 'pulse-dot';
           const hue = dotHue(peer.id);
@@ -150,7 +156,9 @@ export default function WorldMap({
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);
           });
-          marker = new mapboxgl.Marker({ element: el }).setLngLat([peer.lng, peer.lat]).addTo(map);
+          wrapper.appendChild(el);
+
+          marker = new mapboxgl.Marker({ element: wrapper }).setLngLat([peer.lng, peer.lat]).addTo(map);
           markers.set(peer.id, marker);
         }
         marker.getElement().style.opacity = peer.busy ? '0.35' : '1';

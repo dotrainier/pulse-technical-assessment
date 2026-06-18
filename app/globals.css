@@ -36,13 +36,14 @@ body {
   /* --dot-glow is set per-element in JS from the dot's own hue */
   box-shadow: 0 0 8px 2px var(--dot-glow, rgba(255, 255, 255, 0.3));
   animation:
-    dot-appear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+    dot-appear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
     pulse-ring  2.2s ease-out 0.5s infinite;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  /* scale is a standalone property — does NOT conflict with Mapbox's transform on the wrapper */
+  transition: scale 0.15s ease, filter 0.15s ease;
 }
 
 .pulse-dot:hover {
-  transform: scale(1.4);
+  scale: 1.4;
   filter: brightness(1.35);
 }
 
@@ -96,12 +97,12 @@ body {
 @keyframes dot-appear {
   from {
     opacity: 0;
-    transform: scale(0.2);
+    scale: 0.2;
     filter: brightness(2.5);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
     filter: brightness(1);
   }
 }
@@ -109,12 +110,12 @@ body {
 @keyframes dot-disappear {
   from {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
     filter: brightness(1);
   }
   to {
     opacity: 0;
-    transform: scale(0);
+    scale: 0;
     filter: brightness(2);
   }
 }
