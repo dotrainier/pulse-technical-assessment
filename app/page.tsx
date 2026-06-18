@@ -53,6 +53,7 @@ export default function Home() {
   const peerRef = useRef<PeerSession | null>(null);
   const msgId = useRef(0);
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showNotice(text: string) {
     setNotice(text);
@@ -68,6 +69,7 @@ export default function Home() {
 
   function teardown(message?: string) {
     if (requestTimer.current) clearTimeout(requestTimer.current);
+    if (connectTimer.current) clearTimeout(connectTimer.current);
     peerRef.current?.close();
     peerRef.current = null;
     setLocalStream(null);
@@ -101,11 +103,17 @@ export default function Home() {
         }
       },
       onChannelOpen: () => {
+        if (connectTimer.current) clearTimeout(connectTimer.current);
         setConn({ kind: "connected", peerId });
         addMessage(null, "Connected to a stranger", true);
       },
     });
     peerRef.current = ps;
+    connectTimer.current = setTimeout(() => {
+      if (connRef.current.kind === "connecting") {
+        teardown("Connection timed out.");
+      }
+    }, 20_000);
   }
 
   function handleControl(ctrl: PeerControl) {

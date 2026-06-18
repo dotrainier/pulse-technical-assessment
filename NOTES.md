@@ -20,8 +20,29 @@ _Bug 3:_ Ghost dots — presence never goes stale after user disconnects.
 - Fix: Added where: { id } to only refresh the caller's own row
 - This also fixes sudden disconnects since the TTL reaper now works correctly
 
+_Bug 4 (found during Phase 2):_ ICE candidates silently dropped.
+
+- lib/webrtc.ts called flushPendingCandidates() before
+  setRemoteDescription()
+- addIceCandidate() requires remote description to exist first
+- All queued candidates threw InvalidStateError, silently
+  swallowed by catch {}
+- Result: peers stuck on "connecting" indefinitely
+- Fix: swap order — setRemoteDescription() first, then
+  flushPendingCandidates()
+
 _Developer Notice:_ Verified against live demo at pulse-silk-eta.vercel.app:
 
 - Chat not auto-closing on disconnect is intentional behavior
 - Page refresh creating a new dot is intentional behavior
 - Not treated as bugs
+
+_Phase 2 code review findings:_
+
+- Fixed empty state vertical centering (h-full
+  without defined parent height)
+- Fixed semantic mine: false on system messages
+- Noted stale closure patterns in handleControl
+  and onChannelOpen — harmless in practice due
+  to refs and stable setters, but flagged as
+  design smells for future refactoring
