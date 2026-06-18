@@ -1,18 +1,20 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import "mapbox-gl/dist/mapbox-gl.css";
-import type { Map as MapboxMap, Marker } from "mapbox-gl";
-import type { PeerDot } from "@/lib/types";
+import { useEffect, useRef, useState } from 'react';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import type { Map as MapboxMap, Marker } from 'mapbox-gl';
+import type { PeerDot } from '@/lib/types';
 
-const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA";
+const TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ??
+  'pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA';
 
-function dotColor(id: string): string {
+function dotHue(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash * 31 + id.charCodeAt(i)) | 0;
   }
-  return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
+  return Math.abs(hash) % 360;
 }
 
 export default function WorldMap({
@@ -48,19 +50,34 @@ export default function WorldMap({
     const markers = markersRef.current;
 
     (async () => {
-      const mapboxgl = (await import("mapbox-gl")).default;
+      const mapboxgl = (await import('mapbox-gl')).default;
       if (cancelled || !containerRef.current) return;
       mapboxgl.accessToken = TOKEN;
       const map = new mapboxgl.Map({
         container: containerRef.current,
-        style: "mapbox://styles/mapbox/dark-v11",
+        style: 'mapbox://styles/mapbox/dark-v11',
         // Open centered on the user if we know where they are, else world view.
         center: me ? [me.lng, me.lat] : [0, 20],
         zoom: me ? 4 : 1.4,
+        projection: 'globe',
         attributionControl: true,
       });
-      map.on("load", () => {
-        if (!cancelled) setReady(true);
+      map.on('load', () => {
+        if (cancelled) return;
+        map.setFog({
+          range: [0.8, 10],
+          // Deep black-blue atmosphere base — matches zinc-950
+          color: '#0a0a14',
+          // Thin indigo rim at the upper atmosphere edge (the "from space" glow)
+          'high-color': '#0e1f3d',
+          // Sharp horizon so the globe reads as a sphere, not a flat map
+          'horizon-blend': 0.06,
+          // Near-black space void behind the globe
+          'space-color': '#020409',
+          // Subtle built-in Mapbox star layer for depth
+          'star-intensity': 0.12,
+        });
+        setReady(true);
       });
       mapRef.current = map;
     })();
@@ -86,15 +103,15 @@ export default function WorldMap({
     let cancelled = false;
 
     (async () => {
-      const mapboxgl = (await import("mapbox-gl")).default;
+      const mapboxgl = (await import('mapbox-gl')).default;
       if (cancelled) return;
       if (!meMarkerRef.current) {
-        const el = document.createElement("div");
-        el.className = "pulse-me";
-        el.title = "You are here";
+        const el = document.createElement('div');
+        el.className = 'pulse-me';
+        el.title = 'You are here';
         el.innerHTML = `<span class="pulse-me-label">Me</span>📍`;
         // anchor "bottom" → the pin's tip sits on the exact coordinate.
-        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
       } else {
@@ -114,7 +131,7 @@ export default function WorldMap({
     let cancelled = false;
 
     (async () => {
-      const mapboxgl = (await import("mapbox-gl")).default;
+      const mapboxgl = (await import('mapbox-gl')).default;
       if (cancelled) return;
       const markers = markersRef.current;
       const seen = new Set<string>();
@@ -123,27 +140,30 @@ export default function WorldMap({
         seen.add(peer.id);
         let marker = markers.get(peer.id);
         if (!marker) {
-          const el = document.createElement("button");
-          el.className = "pulse-dot";
-          el.style.background = dotColor(peer.id);
-          el.title = "Tap to connect";
-          el.addEventListener("click", (e) => {
+          const el = document.createElement('button');
+          el.className = 'pulse-dot';
+          const hue = dotHue(peer.id);
+          el.style.background = `hsl(${hue}, 70%, 60%)`;
+          el.style.setProperty('--dot-glow', `hsla(${hue}, 70%, 60%, 0.55)`);
+          el.title = 'Tap to connect';
+          el.addEventListener('click', (e) => {
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);
           });
-          marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([peer.lng, peer.lat])
-            .addTo(map);
+          marker = new mapboxgl.Marker({ element: el }).setLngLat([peer.lng, peer.lat]).addTo(map);
           markers.set(peer.id, marker);
         }
-        marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
+        marker.getElement().style.opacity = peer.busy ? '0.35' : '1';
       }
 
       // Drop markers for peers that went offline / got filtered out.
       for (const [id, marker] of markers) {
         if (!seen.has(id)) {
-          marker.remove();
           markers.delete(id);
+          const el = marker.getElement();
+          el.classList.add('dot-removing');
+          // Remove from Mapbox after the CSS fade-out finishes (300 ms).
+          setTimeout(() => marker.remove(), 300);
         }
       }
     })();
@@ -154,22 +174,23 @@ export default function WorldMap({
   }, [peers, ready]);
 
   return (
-    <div className="absolute inset-0">
-      <div ref={containerRef} className="h-full w-full bg-zinc-900" />
+    <div className='absolute inset-0'>
+      <div ref={containerRef} className='h-full w-full bg-zinc-900' />
 
       {!TOKEN && (
-        <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-          <p className="max-w-md rounded-lg bg-zinc-800 p-4 text-sm text-zinc-200">
-            Set{" "}
-            <code className="text-emerald-400">NEXT_PUBLIC_MAPBOX_TOKEN</code> in{" "}
+        <div className='absolute inset-0 flex items-center justify-center p-6 text-center'>
+          <p className='max-w-md rounded-lg bg-zinc-800 p-4 text-sm text-zinc-200'>
+            Set <code className='text-emerald-400'>NEXT_PUBLIC_MAPBOX_TOKEN</code> in{' '}
             <code>.env</code> to load the map.
           </p>
         </div>
       )}
 
       {/* Online count */}
-      <div className="absolute bottom-4 left-4 rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
-        {peers.length} online
+      <div className='absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/80 px-3.5 py-1.5 text-xs backdrop-blur-md'>
+        <span className='h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse' />
+        <span className='font-semibold text-emerald-400'>{peers.length}</span>
+        <span className='text-zinc-500'>online</span>
       </div>
     </div>
   );
