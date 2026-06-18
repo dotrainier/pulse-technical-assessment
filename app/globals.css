@@ -77,3 +77,45 @@ body {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
+
+/* ── EntryGate cinematic animations ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.7;  }
+}
+
+.entry-fade-up {
+  opacity: 0;
+  animation: fade-in-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.entry-fade {
+  opacity: 0;
+  animation: fade-in 0.8s ease forwards;
+}
+
+.star-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+.text-glow-emerald {
+  text-shadow:
+    0 0 60px rgba(52, 211, 153, 0.35),
+    0 0 120px rgba(52, 211, 153, 0.12);
+}
