@@ -86,7 +86,12 @@ export class PeerSession {
 
   async handleSignal(type: DescType, payload: string) {
     if (this.closed) return;
-    const data = JSON.parse(payload);
+    let data: unknown;
+    try {
+      data = JSON.parse(payload);
+    } catch {
+      return;
+    }
 
     if (type === 'ice') {
       if (!this.pc.remoteDescription) {
