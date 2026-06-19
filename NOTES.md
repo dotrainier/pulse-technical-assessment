@@ -164,6 +164,10 @@ A deliberate, visible blocking action — distinct from declining or ending.
 - _Consistent auto-decline_ — a guard in processSignal auto-declines any incoming request from a blocked peer before the prompt can show, so both block paths (prompt and chat) behave identically.
 - _Session-scoped by design_ — blocks live in memory (useRef), not localStorage. Since peer IDs regenerate on every page load, persisting old blocked IDs would be useless — they'd never match new sessions. Memory-only blocking aligns with the app's ephemeral, anonymous nature.
 
+### Feature 3 — Floating Emoji Reactions (Alive, bonus)
+
+During a video call, both peers see a row of emoji buttons (❤️ 😂 👍 😮 🔥). Tapping one spawns a floating emoji that drifts up the screen and fades like Instagram Live reactions, and the same reaction is sent over the existing WebRTC data channel so it appears on both screens at once. New reaction message type on the data channel, kept distinct from chat and typing. Purely ephemeral and peer-to-peer — nothing stored. Also mirrored the local camera PiP for a natural selfie-view while sending the unflipped stream to the peer.
+
 ### Bug Found & Fixed During Phase 4 — Stale busy Flag
 
 While testing block/decline/end behavior, found that the server's /api/signal route set busy: true on both peers on "accept" and cleared it on "decline" — but _never cleared it on "end"_. Any user who ended a conversation stayed permanently busy: true, so the server auto-declined every future request to them. This affected all users, not just the block edge case — ending any chat would silently brick that user's ability to receive new connections. Fix: added "end" to the busy-clearing branch alongside "decline".
@@ -174,6 +178,5 @@ app/layout.tsx calls await headers() to force per-request dynamic rendering. Thi
 
 ### What I'd Do Next With More Time
 
-- Floating emoji reactions over the video panel (sent over the existing WebRTC data channel) for a more alive, playful feel.
 - Persist mood across the session and allow changing it mid-session.
 - The server-side session token from the Phase 3 security notes — would close the signaling MITM and also let blocking be enforced server-side more robustly.
