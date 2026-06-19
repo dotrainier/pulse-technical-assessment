@@ -142,4 +142,38 @@ Issue 5 — No HTTP security headers (Medium) — Fixed
 
 ## Phase 4 — Make it Better
 
-To be completed
+Built two complementary features that make Pulse feel more _alive_ (identity) and more _safe_ (blocking), plus fixed a core reconnection bug discovered while testing.
+
+### Feature 1 — Pre-Connection Profile Card (Alive)
+
+Anonymous strangers now have a lightweight, ephemeral identity so connecting feels human without compromising the no-accounts, nothing-stored design.
+
+- _Mood selector_ on EntryGate — after locating, the user picks one of six moods (😊 Friendly, 💬 Just chatting, 🎮 Gamer, 🎵 Music, 😴 Bored, 🌍 Exploring). Stored as a nullable mood column on the Presence row and returned in the poll response.
+- _Deterministic identity_ in lib/identity.ts — each peer's UUID is hashed into a consistent animal name ("Cosmic Panda"), a matching animal emoji (🐼), and an HSL avatar color. Three independent hash seeds keep the name parts and color decorrelated. A shared animalIndex() helper guarantees the emoji always matches the animal in the name — it's structurally impossible for them to diverge.
+- _Where it shows_ — the ConnectionPrompt displays the colored avatar (animal emoji), the anonymous name, and the mood pill before the user decides to accept. The same identity carries into the ChatPanel header and appears as a small avatar beside each of the peer's messages (with consecutive-message grouping, so the avatar only shows on the first of a burst).
+- Identity resolves from activePeerId across all connection states (requesting, connecting, connected), so it stays consistent from the prompt through the entire chat.
+
+### Feature 2 — Explicit Block (Safe)
+
+A deliberate, visible blocking action — distinct from declining or ending.
+
+- _Design decision:_ declining a request or ending a chat are lightweight actions (you might reconsider, or want to reconnect later), so neither blocks. Only an explicit _Block_ button adds a peer to the session block list. This avoids the accidental-permanent-removal problem where a misclick on Decline would hide someone forever.
+- _Block buttons_ — a muted tertiary "Block" action with a ban icon on the ConnectionPrompt (below Accept/Decline) and in the ChatPanel header (beside End). Blocking mid-chat also tears down the active connection.
+- _Centralized logic_ — a single blockPeer() handler adds the peer to a useRef block set and performs the right teardown based on current connection state, with an early exit for the race where a block fires after the connection already ended.
+- _Server-side filtering_ — blocked peer IDs are sent on the poll request, validated against a UUID v4 regex (prevents injection into the Prisma query), and excluded via notIn. Blocked peers vanish from the map on the next poll tick.
+- _Consistent auto-decline_ — a guard in processSignal auto-declines any incoming request from a blocked peer before the prompt can show, so both block paths (prompt and chat) behave identically.
+- _Session-scoped by design_ — blocks live in memory (useRef), not localStorage. Since peer IDs regenerate on every page load, persisting old blocked IDs would be useless — they'd never match new sessions. Memory-only blocking aligns with the app's ephemeral, anonymous nature.
+
+### Bug Found & Fixed During Phase 4 — Stale busy Flag
+
+While testing block/decline/end behavior, found that the server's /api/signal route set busy: true on both peers on "accept" and cleared it on "decline" — but _never cleared it on "end"_. Any user who ended a conversation stayed permanently busy: true, so the server auto-declined every future request to them. This affected all users, not just the block edge case — ending any chat would silently brick that user's ability to receive new connections. Fix: added "end" to the busy-clearing branch alongside "decline".
+
+### Deployment Note
+
+app/layout.tsx calls await headers() to force per-request dynamic rendering. This is required for the nonce-based CSP (from Phase 3) to work in production — static pre-rendering at build time produces HTML with no nonce on the script tags, which the runtime CSP then blocks. Dynamic rendering lets Next.js read the per-request nonce and stamp it on every inline script. For a real-time app with live polling there's no meaningful caching loss.
+
+### What I'd Do Next With More Time
+
+- Floating emoji reactions over the video panel (sent over the existing WebRTC data channel) for a more alive, playful feel.
+- Persist mood across the session and allow changing it mid-session.
+- The server-side session token from the Phase 3 security notes — would close the signaling MITM and also let blocking be enforced server-side more robustly.
