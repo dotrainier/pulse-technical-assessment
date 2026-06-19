@@ -14,10 +14,10 @@ export async function join(
   });
 }
 
-export async function poll(id: string): Promise<PollResponse> {
-  const res = await fetch(`/api/poll?id=${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  });
+export async function poll(id: string, blocked: string[] = []): Promise<PollResponse> {
+  const params = new URLSearchParams({ id });
+  if (blocked.length > 0) params.set("blocked", blocked.join(","));
+  const res = await fetch(`/api/poll?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`poll failed: ${res.status}`);
   return res.json();
 }

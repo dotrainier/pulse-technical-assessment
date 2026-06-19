@@ -22,6 +22,7 @@ export default function ChatPanel({
   onSend,
   onStartVideo,
   onEnd,
+  onBlock,
   onTyping,
   peerTyping = false,
   peerName,
@@ -35,6 +36,7 @@ export default function ChatPanel({
   onSend: (text: string) => void;
   onStartVideo: () => void;
   onEnd: () => void;
+  onBlock?: () => void;
   onTyping?: (v: boolean) => void;
   peerTyping?: boolean;
   peerName?: string;
@@ -124,6 +126,18 @@ export default function ChatPanel({
             </svg>
             Video
           </button>
+          {onBlock && (
+            <button
+              onClick={onBlock}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:border-white/20 hover:text-zinc-400"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              Block
+            </button>
+          )}
           <button
             onClick={onEnd}
             className="flex items-center gap-1.5 rounded-full bg-red-500/90 px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-red-400 hover:shadow-[0_0_16px_rgba(239,68,68,0.4)]"

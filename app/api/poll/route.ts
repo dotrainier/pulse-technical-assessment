@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic';
 // GET /api/poll?id= — the single endpoint that drives the live map.
 // It (1) heartbeats the caller, (2) reaps stale presence + orphan signals,
 // (3) returns the filtered online peers, and (4) drains this user's mailbox.
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const id = params.get('id');
@@ -16,6 +18,13 @@ export async function GET(request: NextRequest) {
   if (!id) {
     return Response.json({ error: 'missing id' }, { status: 400 });
   }
+
+  // Validate and parse the client-supplied blocked list. Each entry must be a
+  // UUID v4 — anything else is silently dropped to prevent injection.
+  const blockedParam = params.get('blocked');
+  const blockedIds = blockedParam
+    ? blockedParam.split(',').filter((v) => UUID_V4_RE.test(v))
+    : [];
 
   const now = Date.now();
   const staleCutoff = new Date(now - STALE_MS);
@@ -32,10 +41,13 @@ export async function GET(request: NextRequest) {
   await prisma.presence.deleteMany({ where: { lastSeen: { lt: staleCutoff } } });
   await prisma.signal.deleteMany({ where: { createdAt: { lt: signalCutoff } } });
 
-  // 3) Online peers, excluding self.
+  // 3) Online peers, excluding self and any peers this user has blocked.
   const peers = await prisma.presence.findMany({
     where: {
-      id: { not: id },
+      id: {
+        not: id,
+        ...(blockedIds.length > 0 ? { notIn: blockedIds } : {}),
+      },
       lastSeen: { gte: staleCutoff },
     },
     select: { id: true, lat: true, lng: true, mood: true, busy: true },

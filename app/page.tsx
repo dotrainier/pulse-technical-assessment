@@ -55,6 +55,11 @@ export default function Home() {
   const msgId = useRef(0);
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Session-scoped block list. Ref only — no re-render needed since blocked
+  // peers disappear from the map automatically on the next poll response.
+  // Not persisted: sessionId resets on page reload so the block list would
+  // apply to a different identity anyway.
+  const blockedRef = useRef(new Set<string>());
 
   function showNotice(text: string) {
     setNotice(text);
@@ -196,6 +201,19 @@ export default function Home() {
     teardown();
   }
 
+  function blockPeer(peerId: string) {
+    blockedRef.current.add(peerId);
+    const c = connRef.current;
+    if (c.kind === "idle" || c.peerId !== peerId) return;
+    if (c.kind === "incoming") {
+      void sendSignal(sessionId, peerId, "decline");
+      setConn({ kind: "idle" });
+    } else {
+      void sendSignal(sessionId, peerId, "end");
+      teardown();
+    }
+  }
+
   function startVideoRequest() {
     if (videoRef.current !== "none" || !peerRef.current) return;
     setVideo("requesting");
@@ -235,7 +253,9 @@ export default function Home() {
   function processSignal(sig: SignalMsg) {
     switch (sig.type) {
       case "request": {
-        if (connRef.current.kind === "idle") {
+        if (blockedRef.current.has(sig.fromId)) {
+          void sendSignal(sessionId, sig.fromId, "decline");
+        } else if (connRef.current.kind === "idle") {
           setConn({ kind: "incoming", peerId: sig.fromId });
         } else {
           void sendSignal(sessionId, sig.fromId, "decline");
@@ -301,7 +321,7 @@ export default function Home() {
 
     const tick = async () => {
       try {
-        const data = await poll(sessionId);
+        const data = await poll(sessionId, [...blockedRef.current]);
         if (!active) return;
         setPeers(data.peers);
         for (const s of data.signals) processSignalRef.current(s);
@@ -380,6 +400,7 @@ export default function Home() {
           declineLabel="Decline"
           onAccept={acceptIncoming}
           onDecline={declineIncoming}
+          onBlock={() => blockPeer(conn.peerId)}
           peerName={activePeerName}
           peerColor={activePeerColor}
           peerMood={activePeerMood}
@@ -400,6 +421,7 @@ export default function Home() {
           peerTyping={peerTyping}
           onStartVideo={startVideoRequest}
           onEnd={endConnection}
+          onBlock={() => blockPeer(conn.peerId)}
           peerName={activePeerName}
           peerColor={activePeerColor}
           peerMood={activePeerMood}
