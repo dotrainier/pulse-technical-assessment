@@ -6,6 +6,7 @@ interface PeerCallbacks {
   onChat: (text: string) => void;
   onControl: (ctrl: PeerControl) => void;
   onTyping?: (typing: boolean) => void;
+  onReaction?: (emoji: string) => void;
   onRemoteStream: (stream: MediaStream | null) => void;
   onConnectionState: (state: RTCPeerConnectionState) => void;
   onChannelOpen: () => void;
@@ -79,6 +80,8 @@ export class PeerSession {
           this.cb.onControl(msg.ctrl as PeerControl);
         } else if (msg.t === 'typing' && typeof msg.value === 'boolean') {
           this.cb.onTyping?.(msg.value);
+        } else if (msg.t === 'reaction' && typeof msg.emoji === 'string') {
+          this.cb.onReaction?.(msg.emoji);
         }
       } catch {}
     };
@@ -142,6 +145,10 @@ export class PeerSession {
 
   sendTyping(value: boolean) {
     this.safeSend({ t: 'typing', value });
+  }
+
+  sendReaction(emoji: string) {
+    this.safeSend({ t: 'reaction', emoji });
   }
 
   private safeSend(obj: unknown) {

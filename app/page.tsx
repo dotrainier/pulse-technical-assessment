@@ -33,6 +33,8 @@ export default function Home() {
   const [notice, setNotice] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [incomingReaction, setIncomingReaction] = useState<{ emoji: string; seq: number } | null>(null);
+  const reactionSeq = useRef(0);
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -95,6 +97,8 @@ export default function Home() {
       },
       onChat: (text) => addMessage(false, text),
       onControl: (ctrl) => handleControl(ctrl),
+      onReaction: (emoji) =>
+        setIncomingReaction({ emoji, seq: ++reactionSeq.current }),
       onTyping: (typing) => {
         setPeerTyping(typing);
         if (peerTypingTimer.current) clearTimeout(peerTypingTimer.current);
@@ -451,6 +455,8 @@ export default function Home() {
           localStream={localStream}
           remoteStream={remoteStream}
           onEnd={endVideo}
+          onSendReaction={(emoji) => peerRef.current?.sendReaction(emoji)}
+          incomingReaction={incomingReaction}
         />
       )}
     </main>
