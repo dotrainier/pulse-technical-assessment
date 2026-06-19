@@ -94,12 +94,13 @@ export class PeerSession {
     }
 
     if (type === 'ice') {
+      const candidate = data as RTCIceCandidateInit;
       if (!this.pc.remoteDescription) {
-        this.pendingCandidates.push(data);
+        this.pendingCandidates.push(candidate);
         return;
       }
       try {
-        await this.pc.addIceCandidate(data);
+        await this.pc.addIceCandidate(candidate);
       } catch {}
       return;
     }
