@@ -14,6 +14,7 @@ export interface PeerDot {
   id: string;
   lat: number;
   lng: number;
+  mood?: string;
   busy: boolean;
 }
 

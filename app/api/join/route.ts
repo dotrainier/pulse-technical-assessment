@@ -16,14 +16,18 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const { id, lat, lng } = (body ?? {}) as Record<string, unknown>;
+  const { id, lat, lng, mood } = (body ?? {}) as Record<string, unknown>;
 
-  if (typeof id !== "string" || id.length < 8 || id.length > 64) {
+  const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (typeof id !== "string" || !UUID_V4_RE.test(id)) {
     return Response.json({ error: "invalid id" }, { status: 400 });
   }
   if (!isValidLatLng(lat, lng)) {
     return Response.json({ error: "invalid coordinates" }, { status: 400 });
   }
+
+  const sanitizedMood =
+    typeof mood === "string" && mood.length <= 64 ? mood : null;
 
   const offset = applyPrivacyOffset(lat as number, lng as number);
 
@@ -33,12 +37,14 @@ export async function POST(request: NextRequest) {
       id,
       lat: offset.lat,
       lng: offset.lng,
+      mood: sanitizedMood,
       busy: false,
       lastSeen: new Date(),
     },
     update: {
       lat: offset.lat,
       lng: offset.lng,
+      mood: sanitizedMood,
       lastSeen: new Date(),
     },
   });

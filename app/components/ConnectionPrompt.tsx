@@ -9,6 +9,10 @@ export default function ConnectionPrompt({
   declineLabel,
   onAccept,
   onDecline,
+  peerName,
+  peerColor,
+  peerMood,
+  peerEmoji,
 }: {
   title: string;
   subtitle?: string;
@@ -16,6 +20,10 @@ export default function ConnectionPrompt({
   declineLabel: string;
   onAccept: () => void;
   onDecline: () => void;
+  peerName?: string;
+  peerColor?: string;
+  peerMood?: string;
+  peerEmoji?: string;
 }) {
   const isVideo = title.toLowerCase().includes("video");
 
@@ -23,11 +31,16 @@ export default function ConnectionPrompt({
     <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-[backdropIn_0.2s_ease_forwards]">
       <div className="w-full max-w-xs rounded-2xl border border-white/10 bg-zinc-950/90 p-8 text-center text-zinc-100 shadow-2xl backdrop-blur-xl animate-[modalIn_0.25s_ease_forwards]">
 
-        {/* Avatar icon with pulse ring */}
+        {/* Avatar with pulse ring */}
         <div className="relative mx-auto mb-6 h-16 w-16">
           <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-          <div className="absolute inset-[5px] flex items-center justify-center rounded-full border border-white/10 bg-zinc-800 shadow-inner">
-            {isVideo ? (
+          <div
+            className="absolute inset-[5px] flex items-center justify-center rounded-full border border-white/10 shadow-inner"
+            style={peerName ? { background: peerColor } : { background: "rgb(39 39 42)" }}
+          >
+            {peerEmoji ? (
+              <span className="text-2xl leading-none select-none">{peerEmoji}</span>
+            ) : isVideo ? (
               <svg
                 className="h-6 w-6 text-emerald-400"
                 fill="none"
@@ -59,8 +72,18 @@ export default function ConnectionPrompt({
           </div>
         </div>
 
+        {/* Peer identity */}
+        {peerName && (
+          <p className="mb-1 text-sm font-medium text-zinc-300">{peerName}</p>
+        )}
+        {peerMood && (
+          <span className="mb-4 inline-block rounded-full bg-white/5 px-3 py-1 text-xs text-zinc-400">
+            {peerMood}
+          </span>
+        )}
+
         {/* Typography */}
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <h2 className={`text-lg font-semibold text-white ${peerName ? "mt-2" : ""}`}>{title}</h2>
         {subtitle && (
           <p className="mt-1.5 text-sm text-zinc-400">{subtitle}</p>
         )}

@@ -24,6 +24,10 @@ export default function ChatPanel({
   onEnd,
   onTyping,
   peerTyping = false,
+  peerName,
+  peerColor,
+  peerMood,
+  peerEmoji,
 }: {
   messages: ChatMessage[];
   connected: boolean;
@@ -33,6 +37,10 @@ export default function ChatPanel({
   onEnd: () => void;
   onTyping?: (v: boolean) => void;
   peerTyping?: boolean;
+  peerName?: string;
+  peerColor?: string;
+  peerMood?: string;
+  peerEmoji?: string;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -83,10 +91,23 @@ export default function ChatPanel({
               connected ? "bg-emerald-400" : "bg-amber-400"
             }`}
           />
+          {peerEmoji && (
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full select-none"
+              style={{ background: peerColor }}
+            >
+              <span className="text-lg leading-none">{peerEmoji}</span>
+            </div>
+          )}
           <div>
-            <p className="text-sm font-semibold tracking-wide">Stranger</p>
+            <p className="text-sm font-semibold tracking-wide">
+              {peerName ?? "Stranger"}
+            </p>
             <p className="text-xs text-zinc-500">
               {connected ? "Connected" : "Connecting…"}
+              {peerMood && (
+                <span className="ml-1.5 text-zinc-600">· {peerMood}</span>
+              )}
             </p>
           </div>
         </div>
@@ -127,7 +148,7 @@ export default function ChatPanel({
         )}
 
         <div className="space-y-3">
-          {messages.map((m) => {
+          {messages.map((m, i) => {
             if (m.system) {
               return (
                 <div key={m.id} className="msg-appear flex justify-center py-1">
@@ -137,18 +158,47 @@ export default function ChatPanel({
                 </div>
               );
             }
+
+            if (m.mine === false) {
+              // Avatar sits on the LAST message of a consecutive peer run (Messenger/Discord pattern).
+              // The group continues if the next message is also from the peer, or if the peer
+              // is currently typing (typing indicator will carry the avatar instead).
+              const nextM = i < messages.length - 1 ? messages[i + 1] : null;
+              const groupContinues =
+                (nextM !== null && !nextM.system && nextM.mine === false) ||
+                (nextM === null && peerTyping);
+              const isLastInGroup = !groupContinues;
+
+              return (
+                <div key={m.id} className="msg-appear flex flex-col items-start gap-1">
+                  <div className="flex items-end gap-2">
+                    {peerEmoji ? (
+                      isLastInGroup ? (
+                        <div
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full select-none"
+                          style={{ background: peerColor }}
+                        >
+                          <span className="text-xs leading-none">{peerEmoji}</span>
+                        </div>
+                      ) : (
+                        <div className="h-6 w-6 shrink-0" />
+                      )
+                    ) : null}
+                    <span className="max-w-[78%] rounded-2xl border border-white/8 bg-zinc-800/70 px-4 py-2.5 text-sm leading-relaxed text-zinc-100 shadow-sm backdrop-blur-sm">
+                      {m.text}
+                    </span>
+                  </div>
+                  {/* Offset timestamp to sit under the bubble, not the avatar */}
+                  <span className={`px-1 text-xs text-white/30 ${peerEmoji ? "ml-8" : ""}`}>
+                    {formatTime(m.ts)}
+                  </span>
+                </div>
+              );
+            }
+
             return (
-              <div
-                key={m.id}
-                className={`msg-appear flex flex-col gap-1 ${m.mine ? "items-end" : "items-start"}`}
-              >
-                <span
-                  className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
-                    m.mine
-                      ? "bg-emerald-400 font-medium text-zinc-950"
-                      : "border border-white/8 bg-zinc-800/70 text-zinc-100 backdrop-blur-sm"
-                  }`}
-                >
+              <div key={m.id} className="msg-appear flex flex-col items-end gap-1">
+                <span className="max-w-[78%] rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-medium leading-relaxed text-zinc-950 shadow-sm">
                   {m.text}
                 </span>
                 <span className="px-1 text-xs text-white/30">
@@ -158,9 +208,17 @@ export default function ChatPanel({
             );
           })}
 
-          {/* Typing indicator */}
+          {/* Typing indicator — always end of peer group, always shows avatar */}
           {peerTyping && (
-            <div className="msg-appear flex items-start">
+            <div className="msg-appear flex items-end gap-2">
+              {peerEmoji && (
+                <div
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full select-none"
+                  style={{ background: peerColor }}
+                >
+                  <span className="text-xs leading-none">{peerEmoji}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1.5 rounded-2xl border border-white/8 bg-zinc-800/70 px-4 py-3 backdrop-blur-sm">
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "0ms" }} />
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-zinc-400" style={{ animationDelay: "200ms" }} />

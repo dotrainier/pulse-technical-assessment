@@ -15,6 +15,7 @@ model Presence {
   id       String   @id // client-generated session uuid
   lat      Float // ALREADY privacy-offset coords (raw is never stored)
   lng      Float
+  mood     String?  // emoji label chosen at entry, e.g. "😊 Friendly"
   busy     Boolean  @default(false) // true while in an active connection
   lastSeen DateTime
 

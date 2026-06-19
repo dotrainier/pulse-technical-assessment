@@ -10,6 +10,7 @@ import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
 import { type PeerDot, type SignalMsg } from "@/lib/types";
+import { generateName, generateColor, generateAnimalEmoji } from "@/lib/identity";
 
 type Conn =
   | { kind: "idle" }
@@ -326,9 +327,9 @@ export default function Home() {
     };
   }, [sessionId, phase]);
 
-  async function handleReady(lat: number, lng: number) {
+  async function handleReady(lat: number, lng: number, mood: string) {
     setMyLocation({ lat, lng });
-    await join(sessionId, lat, lng);
+    await join(sessionId, lat, lng, mood);
     setPhase("live");
   }
 
@@ -337,6 +338,13 @@ export default function Home() {
   }
 
   const inChat = conn.kind === "connecting" || conn.kind === "connected";
+
+  const activePeerId = conn.kind !== "idle" ? conn.peerId : null;
+  const activePeer = activePeerId ? peers.find((p) => p.id === activePeerId) : null;
+  const activePeerName = activePeerId ? generateName(activePeerId) : undefined;
+  const activePeerColor = activePeerId ? generateColor(activePeerId) : undefined;
+  const activePeerEmoji = activePeerId ? generateAnimalEmoji(activePeerId) : undefined;
+  const activePeerMood = activePeer?.mood;
 
   return (
     <main className="fixed inset-0 overflow-hidden">
@@ -372,6 +380,10 @@ export default function Home() {
           declineLabel="Decline"
           onAccept={acceptIncoming}
           onDecline={declineIncoming}
+          peerName={activePeerName}
+          peerColor={activePeerColor}
+          peerMood={activePeerMood}
+          peerEmoji={activePeerEmoji}
         />
       )}
 
@@ -388,6 +400,10 @@ export default function Home() {
           peerTyping={peerTyping}
           onStartVideo={startVideoRequest}
           onEnd={endConnection}
+          peerName={activePeerName}
+          peerColor={activePeerColor}
+          peerMood={activePeerMood}
+          peerEmoji={activePeerEmoji}
         />
       )}
 

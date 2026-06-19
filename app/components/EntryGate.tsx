@@ -17,13 +17,23 @@ const STARS = [
   { top: "14%", left: "60%", delay: "1.8s", dur: "4.0s", large: false },
 ];
 
+const MOODS = [
+  { emoji: "😊", label: "Friendly" },
+  { emoji: "💬", label: "Just chatting" },
+  { emoji: "🎮", label: "Gamer" },
+  { emoji: "🎵", label: "Music" },
+  { emoji: "😴", label: "Bored" },
+  { emoji: "🌍", label: "Exploring" },
+];
+
 export default function EntryGate({
   onReady,
 }: {
-  onReady: (lat: number, lng: number) => void;
+  onReady: (lat: number, lng: number, mood: string) => void;
 }) {
-  const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "locating" | "mood" | "error">("idle");
   const [error, setError] = useState<string>("");
+  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   function enter() {
     if (!("geolocation" in navigator)) {
@@ -33,7 +43,10 @@ export default function EntryGate({
     }
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => onReady(pos.coords.latitude, pos.coords.longitude),
+      (pos) => {
+        setPendingCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setStatus("mood");
+      },
       (err) => {
         setStatus("error");
         setError(
@@ -44,6 +57,11 @@ export default function EntryGate({
       },
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
+  }
+
+  function selectMood(mood: string) {
+    if (!pendingCoords) return;
+    onReady(pendingCoords.lat, pendingCoords.lng, mood);
   }
 
   return (
@@ -118,15 +136,37 @@ export default function EntryGate({
           Drop onto the map and connect.
         </p>
 
-        {/* CTA */}
-        <button
-          onClick={enter}
-          disabled={status === "locating"}
-          className="entry-fade mt-1 rounded-full bg-emerald-400 px-10 py-3.5 text-sm font-semibold tracking-widest text-zinc-950 uppercase transition-all duration-300 hover:bg-emerald-300 hover:shadow-[0_0_32px_rgba(52,211,153,0.45)] disabled:opacity-50"
-          style={{ animationDelay: "0.65s" }}
-        >
-          {status === "locating" ? "Locating…" : "Enter Pulse"}
-        </button>
+        {/* CTA / Mood selector */}
+        {status !== "mood" ? (
+          <button
+            onClick={enter}
+            disabled={status === "locating"}
+            className="entry-fade mt-1 rounded-full bg-emerald-400 px-10 py-3.5 text-sm font-semibold tracking-widest text-zinc-950 uppercase transition-all duration-300 hover:bg-emerald-300 hover:shadow-[0_0_32px_rgba(52,211,153,0.45)] disabled:opacity-50"
+            style={{ animationDelay: "0.65s" }}
+          >
+            {status === "locating" ? "Locating…" : "Enter Pulse"}
+          </button>
+        ) : (
+          <div className="entry-fade flex flex-col items-center gap-4">
+            <p className="text-xs font-medium tracking-[0.2em] text-emerald-400 uppercase">
+              How are you feeling?
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {MOODS.map(({ emoji, label }) => (
+                <button
+                  key={label}
+                  onClick={() => selectMood(`${emoji} ${label}`)}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center backdrop-blur transition-all duration-200 hover:border-emerald-400/40 hover:bg-emerald-400/10 hover:shadow-[0_0_16px_rgba(52,211,153,0.2)]"
+                >
+                  <span className="text-2xl leading-none">{emoji}</span>
+                  <span className="text-[10px] font-medium tracking-wide text-zinc-400 leading-tight">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {status === "error" && (
           <p className="max-w-sm text-center text-sm text-red-400">{error}</p>
