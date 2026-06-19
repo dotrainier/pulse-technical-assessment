@@ -178,5 +178,6 @@ app/layout.tsx calls await headers() to force per-request dynamic rendering. Thi
 
 ### What I'd Do Next With More Time
 
-- Persist mood across the session and allow changing it mid-session.
-- The server-side session token from the Phase 3 security notes — would close the signaling MITM and also let blocking be enforced server-side more robustly.
+- Let users change their mood mid-session instead of locking it in at entry. Right now it's set once on the EntryGate and never updated after that.
+- Implement the server-side session token from the Phase 3 notes. That's the real fix for the signaling auth issues I documented, and it would also let me enforce blocking on the server instead of trusting the client's blocked list.
+- Clean up the stale-closure patterns in handleControl and onChannelOpen that I noted in Phase 2. They work fine because everything inside them uses refs, but I'd refactor them properly before a real production release.
